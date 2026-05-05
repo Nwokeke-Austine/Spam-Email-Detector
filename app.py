@@ -3,12 +3,16 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pickle
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 # Load the trained model
 with open('spam_model.pkl', 'rb') as f:
     model = pickle.load(f)
+
+@app.route('/')
+def home():
+    return app.send_static_file('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
