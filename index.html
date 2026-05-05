@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Email Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffffff, #888888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #999;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            font-size: 16px;
+            font-family: inherit;
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #333;
+            border-radius: 10px;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #666;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+
+        textarea::placeholder {
+            color: #555;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .analyze-btn {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .analyze-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .clear-btn {
+            background: #333;
+            color: #ffffff;
+            border: 2px solid #555;
+        }
+
+        .clear-btn:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            display: none;
+            padding: 30px;
+            background: #000000;
+            border: 2px solid #333;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .verdict {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .verdict.spam {
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .verdict.ham {
+            color: #44ff44;
+            text-shadow: 0 0 20px rgba(68, 255, 68, 0.5);
+        }
+
+        .confidence {
+            font-size: 1.3em;
+            color: #999;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 30px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            transition: width 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .confidence-fill.spam {
+            background: linear-gradient(90deg, #ff4444, #cc0000);
+            color: #ffffff;
+        }
+
+        .confidence-fill.ham {
+            background: linear-gradient(90deg, #44ff44, #00cc00);
+            color: #000000;
+        }
+
+        .info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1a1a1a;
+            border-left: 4px solid #666;
+            border-radius: 5px;
+            font-size: 0.95em;
+            color: #ccc;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
+        .spinner {
+            border: 3px solid #333;
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background: #0a0a0a;
+            border: 2px solid #222;
+            border-radius: 10px;
+        }
+
+        .examples h3 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .example-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #1a1a1a;
+            color: #ffffff;
+            border: 1px solid #333;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .example-btn:hover {
+            background: #222;
+            border-color: #444;
+        }
+
+        .example-label {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 10px;
+            text-transform: uppercase;
+        }
+
+        .example-label.spam {
+            background: #ff4444;
+            color: #ffffff;
+        }
+
+        .example-label.ham {
+            background: #44ff44;
+            color: #000000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spam Email Detector</h1>
+        <p class="subtitle">Powered by Naive Bayes Classification</p>
+
+        <div class="input-section">
+            <label for="emailText">Enter Email Text:</label>
+            <textarea 
+                id="emailText" 
+                placeholder="Paste your email content here to check if it's spam or legitimate..."
+            ></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="analyze-btn" onclick="analyzeEmail()">Analyze Email</button>
+            <button class="clear-btn" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing email...</p>
+        </div>
+
+        <div class="result-section" id="result">
+            <div class="result-header">
+                <div class="verdict" id="verdict"></div>
+                <div class="confidence" id="confidenceText"></div>
+            </div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" id="confidenceFill"></div>
+            </div>
+            <div class="info-box" id="infoBox"></div>
+        </div>
+
+        <div class="examples">
+            <h3>Try Example Emails:</h3>
+            <button class="example-btn" onclick="loadExample('spam1')">
+                <span class="example-label spam">Spam</span>
+                "FREE GIFT! Click here to claim your prize now!!!"
+            </button>
+            <button class="example-btn" onclick="loadExample('spam2')">
+                <span class="example-label spam">Spam</span>
+                "Congratulations! You've won $1,000,000! Reply with your bank details"
+            </button>
+            <button class="example-btn" onclick="loadExample('ham1')">
+                <span class="example-label ham">Safe</span>
+                "Hi, can we schedule a meeting for next Tuesday?"
+            </button>
+            <button class="example-btn" onclick="loadExample('ham2')">
+                <span class="example-label ham">Safe</span>
+                "Thanks for your help with the project. Much appreciated!"
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const examples = {
+            spam1: "FREE GIFT! Click here to claim your prize now!!!",
+            spam2: "Congratulations! You've won $1,000,000! Reply with your bank details",
+            ham1: "Hi, can we schedule a meeting for next Tuesday?",
+            ham2: "Thanks for your help with the project. Much appreciated!"
+        };
+
+        function loadExample(exampleKey) {
+            document.getElementById('emailText').value = examples[exampleKey];
+        }
+
+        async function analyzeEmail() {
+            const emailText = document.getElementById('emailText').value.trim();
+            
+            if (!emailText) {
+                alert('Please enter some email text to analyze');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').classList.remove('show');
+
+            try {
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: emailText })
+                });
+
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error connecting to the server. Make sure the Flask backend is running on port 5000.');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            const verdictDiv = document.getElementById('verdict');
+            const confidenceText = document.getElementById('confidenceText');
+            const confidenceFill = document.getElementById('confidenceFill');
+            const infoBox = document.getElementById('infoBox');
+
+            const isSpam = data.prediction === 'spam';
+            const confidence = Math.round(data.confidence);
+
+            // Set verdict
+            verdictDiv.textContent = isSpam ? 'SPAM DETECTED' : 'LEGITIMATE EMAIL';
+            verdictDiv.className = 'verdict ' + (isSpam ? 'spam' : 'ham');
+
+            // Set confidence
+            confidenceText.textContent = `Confidence: ${confidence}%`;
+
+            // Set confidence bar
+            confidenceFill.style.width = confidence + '%';
+            confidenceFill.className = 'confidence-fill ' + (isSpam ? 'spam' : 'ham');
+            confidenceFill.textContent = confidence + '%';
+
+            // Set info box
+            if (isSpam) {
+                infoBox.innerHTML = `
+                    <strong>Warning:</strong> This email appears to be spam. 
+                    It may contain phishing attempts, malicious links, or fraudulent offers. 
+                    Do not click on any links or provide personal information.
+                `;
+            } else {
+                infoBox.innerHTML = `
+                    <strong>Status:</strong> This email appears to be legitimate. 
+                    However, always exercise caution with unexpected emails and verify sender information.
+                `;
+            }
+
+            // Show result
+            resultDiv.classList.add('show');
+        }
+
+        function clearAll() {
+            document.getElementById('emailText').value = '';
+            document.getElementById('result').classList.remove('show');
+        }
+
+        // Allow Enter key to submit (Ctrl+Enter for new line)
+        document.getElementById('emailText').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                analyzeEmail();
+            }
+        });
+    </script>
+</body>
+</html>
